@@ -18,7 +18,6 @@ var showDoubles = flag.Bool("showDoubles", true, "Show list of double files")
 var maxFileSize = flag.Int64("maxFileSize", 10, "Max size of file to be scanned in MB, default 10 MB")
 
 type FileDef struct {
-	Info *os.FileInfo
 	Path string
 	Hash []byte
 }
@@ -38,13 +37,14 @@ func walk(path string, info os.FileInfo, err error) error {
 		shaHash := hash.Sum(nil)
 		if (*showDoubles) {
 			if doubleFilePath := files[fmt.Sprintf("%x", shaHash)].Path; doubleFilePath != "" {
-				fmt.Printf("%s \t -> \t %s\n", doubleFilePath, path)
-				doubleFiles[fmt.Sprintf("%x", shaHash)] = FileDef{&info, path, shaHash}
+				fmt.Printf("\n%s \t -> \t %s\n", doubleFilePath, path)
+				doubleFiles[fmt.Sprintf("%x", shaHash)] = FileDef{path, shaHash}
 			}
 		} else {
 			fmt.Printf("\n Indexing %s ", path)
 		}
-		files[fmt.Sprintf("%x", shaHash)] = FileDef{&info, path, shaHash}
+		files[fmt.Sprintf("%x", shaHash)] = FileDef{path, shaHash}
+		fmt.Printf("\r %d scanned", len(files))
 	}
 	return err
 }
