@@ -23,15 +23,18 @@ type FileDef struct {
 }
 
 func walk(path string, info os.FileInfo, err error) error {
+	if err != nil {
+		log.Fatal("Read error ", err)
+	}
 	if !info.IsDir() {
 		hash := sha256.New()
 		if info.Size() > (*maxFileSize) * 1024 * 1024 {
-			fmt.Printf("Skip file %s due to size\n", path)
+			fmt.Printf("\nSkip file '%s' due to size\n", path)
 			return nil
 		}
 		file, err := ioutil.ReadFile(path)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Read error ", err)
 		}
 		hash.Write(file)
 		shaHash := hash.Sum(nil)
@@ -44,9 +47,9 @@ func walk(path string, info os.FileInfo, err error) error {
 			fmt.Printf("\n Indexing %s ", path)
 		}
 		files[fmt.Sprintf("%x", shaHash)] = FileDef{path, shaHash}
-		fmt.Printf("\r %d scanned", len(files))
+		fmt.Printf("\r %d scanned ", len(files))
 	}
-	return err
+	return nil
 }
 
 func init() {
@@ -55,10 +58,10 @@ func init() {
 func main() {
 	err := filepath.Walk(*rootPath, walk)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("FilePath error ", err)
 	}
 
-	fmt.Printf("\r Scan completed. Indexed %d file(s). %d duplicate(s) found", len(files), len(doubleFiles))
+	fmt.Printf("\r Scan completed. Indexed %d file(s). %d duplicate(s) found\n", len(files), len(doubleFiles))
 
 	os.Exit(0)
 }
