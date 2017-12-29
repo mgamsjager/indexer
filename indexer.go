@@ -13,9 +13,10 @@ import (
 var files = make(map[string]FileDef)
 var doubleFiles = make(map[string]FileDef)
 
-var rootPath = flag.String("rootPath", ".", "Root path for scan")
-var showDoubles = flag.Bool("showDoubles", true, "Show list of double files")
-var maxFileSize = flag.Int64("maxFileSize", 10, "Max size of file to be scanned in MB, default 10 MB")
+var rootPath = flag.String("root-path", ".", "Root path for scan")
+var showDoubles = flag.Bool("show-doubles", true, "Show list of double files")
+var maxFileSize = flag.Int64("max-filesize", 10, "Max size of file to be scanned in MB, default 10 MB")
+var deleteDoubles = flag.Bool("delete-doubles", false, "Delete found doubles from file system")
 
 type FileDef struct {
 	Path string
@@ -42,6 +43,9 @@ func walk(path string, info os.FileInfo, err error) error {
 			if doubleFilePath := files[fmt.Sprintf("%x", shaHash)].Path; doubleFilePath != "" {
 				fmt.Printf("\n%s \t -> \t %s\n", doubleFilePath, path)
 				doubleFiles[fmt.Sprintf("%x", shaHash)] = FileDef{path, shaHash}
+				if (*deleteDoubles) {
+					delete(path)
+				}
 			}
 		} else {
 			fmt.Printf("\n Indexing %s ", path)
@@ -50,6 +54,11 @@ func walk(path string, info os.FileInfo, err error) error {
 		fmt.Printf("\r %d scanned ", len(files))
 	}
 	return nil
+}
+
+func delete(path string) {
+	fmt.Println("Deleting",path)
+	os.Remove(path)
 }
 
 func init() {
@@ -62,6 +71,8 @@ func main() {
 	}
 
 	fmt.Printf("\r Scan completed. Indexed %d file(s). %d duplicate(s) found\n", len(files), len(doubleFiles))
+
+
 
 	os.Exit(0)
 }
