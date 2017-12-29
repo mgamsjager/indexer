@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"log"
 	"path/filepath"
 )
 
@@ -14,6 +15,7 @@ var doubleFiles = make(map[string]FileDef)
 
 var rootPath = flag.String("rootPath", ".", "Root path for scan")
 var showDoubles = flag.Bool("showDoubles", true, "Show list of double files")
+var maxFileSize = flag.Int64("maxFileSize", 10, "Max size of file to be scanned in MB, default 10 MB")
 
 type FileDef struct {
 	Info *os.FileInfo
@@ -24,9 +26,13 @@ type FileDef struct {
 func walk(path string, info os.FileInfo, err error) error {
 	if !info.IsDir() {
 		hash := sha256.New()
+		if info.Size() > (*maxFileSize) * 1024 * 1024 {
+			fmt.Printf("Skip file %s due to size\n", path)
+			return nil
+		}
 		file, err := ioutil.ReadFile(path)
 		if err != nil {
-			return err
+			log.Fatal(err)
 		}
 		hash.Write(file)
 		shaHash := hash.Sum(nil)
@@ -49,8 +55,7 @@ func init() {
 func main() {
 	err := filepath.Walk(*rootPath, walk)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(-1)
+		log.Fatal(err)
 	}
 
 	fmt.Printf("\r Scan completed. Indexed %d file(s). %d duplicate(s) found", len(files), len(doubleFiles))
