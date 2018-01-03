@@ -4,10 +4,11 @@ import (
 	"crypto/sha256"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"log"
 	"path/filepath"
+	"bufio"
+	"io/ioutil"
 )
 
 var files = make(map[string]FileDef)
@@ -23,6 +24,29 @@ type FileDef struct {
 	Hash []byte
 }
 
+
+func readFile(filename string) ([]byte, error) {
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	if stat, err := f.Stat(); stat.Size() >= 4001 {
+		if err != nil {
+			return nil, err
+		}
+		reader := bufio.NewReader(f)
+		buf, err := reader.Peek(4000)
+		return buf, err
+	} else {
+		buf, err := ioutil.ReadAll(f)
+		return buf, err
+	}
+	return nil, err
+}
+
+
 func walk(path string, info os.FileInfo, err error) error {
 	if err != nil {
 		log.Fatal("Read error ", err)
@@ -33,10 +57,11 @@ func walk(path string, info os.FileInfo, err error) error {
 			fmt.Printf("\nSkip file '%s' due to size\n", path)
 			return nil
 		}
-		file, err := ioutil.ReadFile(path)
+		file, err := readFile(path)
 		if err != nil {
-			log.Fatal("Read error ", err)
+			log.Fatalf("\n%s", err)
 		}
+
 		hash.Write(file)
 		shaHash := hash.Sum(nil)
 		if (*showDoubles) {
