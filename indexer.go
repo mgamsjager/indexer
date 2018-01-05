@@ -7,9 +7,10 @@ import (
 	"os"
 	"log"
 	"path/filepath"
-	"bufio"
 	"io/ioutil"
+	"io"
 )
+const SAMPLE_SIZE = 4000
 
 var files = make(map[string]FileDef)
 var doubleFiles = make(map[string]FileDef)
@@ -32,13 +33,18 @@ func readFile(filename string) ([]byte, error) {
 	}
 	defer f.Close()
 
-	if stat, err := f.Stat(); stat.Size() >= 4001 {
+	if stat, err := f.Stat(); stat.Size() >= SAMPLE_SIZE + 1 {
 		if err != nil {
 			return nil, err
 		}
-		reader := bufio.NewReader(f)
-		buf, err := reader.Peek(4000)
-		return buf, err
+
+		sr := io.NewSectionReader(f, 0, SAMPLE_SIZE)
+
+		b := make([]byte, SAMPLE_SIZE)
+		if _, err := sr.Read(b); err != nil {
+			log.Fatalln(err)
+		}
+		return b, nil
 	} else {
 		buf, err := ioutil.ReadAll(f)
 		return buf, err
