@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/mgamsjager/indexer/log"
 )
@@ -15,6 +16,7 @@ var files = make(map[string]fileDef)
 
 type searcher struct {
 	Config
+	Counter *counter
 }
 
 type Config struct {
@@ -29,16 +31,21 @@ type fileDef struct {
 	Hash []byte
 }
 
+type counter struct {
+	Files int64
+	Mutex sync.RWMutex
+}
+
 func NewSeacher(c Config) *searcher {
-	return &searcher{c}
+	return &searcher{c, &counter{0, sync.RWMutex{}}}
 }
 
 func (s *searcher) FindDuplicates() error {
-	s.Logger.Info("Starting to scan from " + s.Config.Path)
+	s.Logger.Infof("Starting to scan from %s \n ", s.Config.Path)
 	if err := filepath.Walk(s.Config.Path, s.walk); err != nil {
 		return err
 	}
-	s.Logger.Info("Done")
+	s.Logger.Infof("\nDone! \t Files scanned: %d\n", s.Counter.Files)
 	return nil
 }
 
@@ -58,6 +65,10 @@ func (s *searcher) walk(path string, info os.FileInfo, err error) error {
 		s.Logger.Fatal(err)
 	}
 
+	if file == nil {
+		return nil
+	}
+
 	hash.Write(file)
 	shaHash := hash.Sum(nil)
 
@@ -66,9 +77,9 @@ func (s *searcher) walk(path string, info os.FileInfo, err error) error {
 		if s.Config.Delete {
 			delete(path)
 		}
-	} else {
-		registerFile(path, shaHash)
 	}
+	registerFile(path, shaHash)
+	s.counter()
 	return nil
 }
 
@@ -89,6 +100,7 @@ func delete(path string) {
 
 func (s *searcher) readFile(filename string) ([]byte, error) {
 	f, err := os.Open(filename)
+
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +115,8 @@ func (s *searcher) readFile(filename string) ([]byte, error) {
 
 		b := make([]byte, s.Config.SampleSize)
 		if _, err := sr.Read(b); err != nil {
-			s.Logger.Fatal(err)
+			s.Logger.Error(err)
+			return nil, err
 		}
 		return b, nil
 	} else {
@@ -111,4 +124,11 @@ func (s *searcher) readFile(filename string) ([]byte, error) {
 		return buf, err
 	}
 	return nil, err
+}
+
+func (s *searcher) counter() {
+	s.Counter.Mutex.Lock()
+	s.Counter.Files += 1
+	s.Logger.Infof("\r Scanned %d files", s.Counter.Files)
+	s.Counter.Mutex.Unlock()
 }

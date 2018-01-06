@@ -20,7 +20,7 @@ func New() *Logging {
 }
 
 func (l *Logging) Info(msg string) {
-	fmt.Printf("\n%v", msg)
+	fmt.Printf("%v", msg)
 }
 
 func (l *Logging) Infof(format string, msg ...interface{}) {
