@@ -11,10 +11,10 @@ import (
 func main() {
 	var rootPath = flag.String("root-path", ".", "Root path for scan")
 	var deleteDuplicates = flag.Bool("delete-duplicates", false, "Delete found duplicates from file system")
-	var sampleSize = flag.Int64("sample-size", 4000, "Number of bytes to hash.")
+	var sampleSize = flag.Int64("sample-size", 100*1024, "Number of bytes to hash.")
 
 	flag.Parse()
-	s := search.NewSeacher(search.Config{
+	s := search.NewSearcher(search.Config{
 		Logger:     logger.New(),
 		Path:       *rootPath,
 		SampleSize: *sampleSize,

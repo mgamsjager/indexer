@@ -36,12 +36,12 @@ type counter struct {
 	Mutex sync.RWMutex
 }
 
-func NewSeacher(c Config) *searcher {
+func NewSearcher(c Config) *searcher {
 	return &searcher{c, &counter{0, sync.RWMutex{}}}
 }
 
 func (s *searcher) FindDuplicates() error {
-	s.Logger.Infof("Starting to scan from %s \n ", s.Config.Path)
+	s.Logger.Infof("Starting to scan from '%s'. Sample size %dKB \n ", s.Config.Path, s.Config.SampleSize/1024)
 	if err := filepath.Walk(s.Config.Path, s.walk); err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (s *searcher) walk(path string, info os.FileInfo, err error) error {
 	if doubleFilePath := checkForDuplicate(shaHash); doubleFilePath != "" {
 		s.Logger.Infof("\n%s \t -> \t %s\n", doubleFilePath, path)
 		if s.Config.Delete {
-			delete(path)
+			deletePath(path)
 		}
 	}
 	registerFile(path, shaHash)
@@ -93,7 +93,7 @@ func registerFile(path string, shaHash []byte) {
 	files[hexHash] = fileDef{path, shaHash}
 }
 
-func delete(path string) {
+func deletePath(path string) {
 	fmt.Println("Deleting", path)
 	os.Remove(path)
 }
