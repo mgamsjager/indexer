@@ -73,7 +73,7 @@ func (s *searcher) walk(path string, info os.FileInfo, err error) error {
 	shaHash := hash.Sum(nil)
 
 	if doubleFilePath := checkForDuplicate(shaHash); doubleFilePath != "" {
-		s.Logger.Infof("\n%s \t -> \t %s\n", doubleFilePath, path)
+		s.Logger.Infof("\n\t%-30s -> \n \t%s\n", doubleFilePath, path)
 		if s.Config.Delete {
 			deletePath(path)
 		}
